@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">CDTimer</string>
+    <string name="notification_channel_name">CountDownTimer</string>
+    <string name="notification_channel_description">CountDownTimer</string>
+    <string name="notification_Channel_ID">CountDownTimer</string>
+
+</resources>
