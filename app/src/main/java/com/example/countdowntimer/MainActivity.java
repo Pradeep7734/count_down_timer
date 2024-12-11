@@ -44,17 +44,8 @@ public class MainActivity extends AppCompatActivity implements EventRecyclerInte
     private EventAdapter eventAdapter;
     private final String TAG = "MAIN_ACTIVITY";
     private List<EventModel> eventModelList;
-    private EventDatabase db;
     private EventDao dao;
     private boolean isClicked = false;
-
-    private final String READ_MEDIA_IMAGES = "android.permission.READ_MEDIA_IMAGES";
-    private final String WRITE_EXTERNAL_STORAGE = "android.permission.WRITE_EXTERNAL_STORAGE";
-    private final String READ_EXTERNAL_STORAGE = "android.permission.READ_EXTERNAL_STORAGE";
-    private final String POST_NOTIFICATIONS = "android.permission.POST_NOTIFICATIONS";
-    private final String SCHEDULE_EXACT_ALARM = "android.permission.SCHEDULE_EXACT_ALARM";
-
-    private final int PERMISSION_REQ_CODE = 200;
 
 
     @Override
@@ -94,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements EventRecyclerInte
         Log.d(TAG, "Initializing classes and database object");
         try {
             imageHandler = new ImageHandler();
-            db = Room.databaseBuilder(
+            EventDatabase db = Room.databaseBuilder(
                             MainActivity.this,
                             EventDatabase.class,
                             "event_db"
@@ -109,30 +100,7 @@ public class MainActivity extends AppCompatActivity implements EventRecyclerInte
 
         try {
             Log.d(TAG, "Fetching all events from database.");
-            Thread fetchEventsCall = new Thread(new Runnable() {
-                @SuppressLint("NotifyDataSetChanged")
-                @Override
-                public void run() {
-                    eventModelList = dao.getEvents();
-                    sortEventList(eventModelList);
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        Log.d(TAG, "Setting UI views with data");
-                        if (eventModelList.isEmpty()) {
-                            binding.noEventLayout.setVisibility(View.VISIBLE);
-                            binding.eventsRecyclerView.setVisibility(View.INVISIBLE);
-                        } else {
-                            binding.noEventLayout.setVisibility(View.INVISIBLE);
-                            binding.eventsRecyclerView.setVisibility(View.VISIBLE);
-                        }
-                        eventAdapter = new EventAdapter(eventModelList, MainActivity.this, MainActivity.this);
-                        binding.eventsRecyclerView.setAdapter(eventAdapter);
-                        eventAdapter.notifyDataSetChanged();
-                        Log.d(TAG, "UI is updated with correct events");
-                    });
-                    Log.d(TAG, "DB Threading closed connection with the database");
-                }
-            });
-            fetchEventsCall.start();
+            Thread fetchEventsCall = getFetchEventsCall();
             fetchEventsCall.join();
             Log.d(TAG, "Fetching complete.");
         } catch (Exception e) {
@@ -140,13 +108,37 @@ public class MainActivity extends AppCompatActivity implements EventRecyclerInte
         }
     }
 
+    @NonNull
+    private Thread getFetchEventsCall() {
+        Thread fetchEventsCall = new Thread(new Runnable() {
+            @SuppressLint("NotifyDataSetChanged")
+            @Override
+            public void run() {
+                eventModelList = dao.getEvents();
+                sortEventList(eventModelList);
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Log.d(TAG, "Setting UI views with data");
+                    if (eventModelList.isEmpty()) {
+                        binding.noEventLayout.setVisibility(View.VISIBLE);
+                        binding.eventsRecyclerView.setVisibility(View.INVISIBLE);
+                    } else {
+                        binding.noEventLayout.setVisibility(View.INVISIBLE);
+                        binding.eventsRecyclerView.setVisibility(View.VISIBLE);
+                    }
+                    eventAdapter = new EventAdapter(eventModelList, MainActivity.this, MainActivity.this);
+                    binding.eventsRecyclerView.setAdapter(eventAdapter);
+                    eventAdapter.notifyDataSetChanged();
+                    Log.d(TAG, "UI is updated with correct events");
+                });
+                Log.d(TAG, "DB Threading closed connection with the database");
+            }
+        });
+        fetchEventsCall.start();
+        return fetchEventsCall;
+    }
+
     private void checkPermissions() {
-        String[] permissions = {
-                READ_MEDIA_IMAGES,
-                READ_EXTERNAL_STORAGE,
-                WRITE_EXTERNAL_STORAGE,
-                POST_NOTIFICATIONS
-        };
+        String[] permissions = getPermissions();
 
         boolean allPermissionsGranted = true;
 
@@ -158,12 +150,27 @@ public class MainActivity extends AppCompatActivity implements EventRecyclerInte
         }
 
         if (!allPermissionsGranted) {
+            int PERMISSION_REQ_CODE = 200;
             requestPermissions(permissions, PERMISSION_REQ_CODE);
         }
 
         if (!checkForAlarmPermission()){
             requestExactAlarmPermission();
         }
+    }
+
+    @NonNull
+    private static String[] getPermissions() {
+        String READ_MEDIA_IMAGES = "android.permission.READ_MEDIA_IMAGES";
+        String WRITE_EXTERNAL_STORAGE = "android.permission.WRITE_EXTERNAL_STORAGE";
+        String READ_EXTERNAL_STORAGE = "android.permission.READ_EXTERNAL_STORAGE";
+        String POST_NOTIFICATIONS = "android.permission.POST_NOTIFICATIONS";
+        return new String[]{
+                READ_MEDIA_IMAGES,
+                READ_EXTERNAL_STORAGE,
+                WRITE_EXTERNAL_STORAGE,
+                POST_NOTIFICATIONS
+        };
     }
 
     private boolean checkForAlarmPermission() {

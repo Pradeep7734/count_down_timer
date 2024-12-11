@@ -31,21 +31,19 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 public class CreateEventActivity extends AppCompatActivity {
 
     private ActivityCreateEventBinding binding;
     private final int GALLERY_REQ_CODE = 101;
     private final String TAG = "CREATE_EVENT_ACTIVITY";
-    private EventDatabase db;
 
     private ImageHandler imgHandler;
     private EventDao dao;
 
     private String old_event_name = null;
     private boolean isUpdateCalled = false;
-
-    private final String FOLDER_NAME = "Images";
 
     private File imageFolder;
 
@@ -102,10 +100,10 @@ public class CreateEventActivity extends AppCompatActivity {
                 binding.createEventBtn.setVisibility(View.GONE);
                 Log.d(TAG, "Creating event...");
 
-                String eventName = binding.eventNameEt.getText().toString();
-                String eventDescription = binding.eventDescriptionEt.getText().toString();
-                String eventDate = binding.eventDateEt.getText().toString();
-                String eventTime = binding.eventTimeEt.getText().toString();
+                String eventName = Objects.requireNonNull(binding.eventNameEt.getText()).toString();
+                String eventDescription = Objects.requireNonNull(binding.eventDescriptionEt.getText()).toString();
+                String eventDate = Objects.requireNonNull(binding.eventDateEt.getText()).toString();
+                String eventTime = Objects.requireNonNull(binding.eventTimeEt.getText()).toString();
                 String eventImage = imgHandler.postAndGetImagePath(binding.eventImage, eventName, imageFolder);
 
                 Thread createEventThread = new Thread(() -> {
@@ -127,7 +125,7 @@ public class CreateEventActivity extends AppCompatActivity {
                     alarmHandler.scheduleNotification(eventName, alarmNotificationMillis);
                     Log.d(TAG, "Notification is scheduled");
                 } else {
-                    Log.d(TAG, "Notification is not schedule as time left is less than 5 mins");
+                    Log.d(TAG, "Notification is not schedule as time left is less than 5 minutes");
                 }
 
                 Log.d(TAG, "Scheduling Event execution alarm for: "+eventName+" for time: "+timeHandler.getTimeStamp(eventTargetMillis));
@@ -155,7 +153,7 @@ public class CreateEventActivity extends AppCompatActivity {
             alarmHandler = new AlarmNotificationHandler(this);
             timeHandler = new TimeHandler();
             eventHandlerAlarm = new EventHandlerAlarm(this);
-            db = Room.databaseBuilder(
+            EventDatabase db = Room.databaseBuilder(
                             CreateEventActivity.this,
                             EventDatabase.class,
                             "event_db"
@@ -170,6 +168,7 @@ public class CreateEventActivity extends AppCompatActivity {
 
         try {
             Log.d(TAG, "Creating folder for event images");
+            String FOLDER_NAME = "Images";
             imageFolder = new File(getExternalFilesDir(null), FOLDER_NAME);
 
             if (!imageFolder.exists()) {
@@ -243,6 +242,7 @@ public class CreateEventActivity extends AppCompatActivity {
         try {
             if (resultCode == RESULT_OK) {
                 if (requestCode == GALLERY_REQ_CODE) {
+                    assert data != null;
                     Uri uriImage = data.getData();
                     if (uriImage != null) {
                         binding.eventImage.setImageURI(uriImage);
@@ -276,7 +276,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private void getAndSetTimeToEt() {
         try {
             int hour, minute;
-            if (binding.eventTimeEt.getText().length() == 0){
+            if (Objects.requireNonNull(binding.eventTimeEt.getText()).length() == 0){
                 LocalTime time = LocalTime.now();
                 hour = time.getHour();
                 minute = time.getMinute();
@@ -291,7 +291,7 @@ public class CreateEventActivity extends AppCompatActivity {
                 @Override
                 public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
                     binding.eventTimeEt.setText(setTimeFormatCorrect(hourOfDay) + ":" + setTimeFormatCorrect(minute));
-                    Log.d(TAG, "Time is set to view: " + binding.eventTimeEt.getText().toString());
+                    Log.d(TAG, "Time is set to view: " + Objects.requireNonNull(binding.eventTimeEt.getText()));
                 }
             }, hour, minute, true).show();
         } catch (Exception e) {
@@ -315,14 +315,14 @@ public class CreateEventActivity extends AppCompatActivity {
             }
 
             // checking for date parameter
-            if (binding.eventDateEt.getText().toString().isEmpty()) {
+            if (Objects.requireNonNull(binding.eventDateEt.getText()).toString().isEmpty()) {
                 Log.d(TAG, "Event date is incorrect");
                 Toast.makeText(this, "Date should not be empty.", Toast.LENGTH_SHORT).show();
                 return false;
             }
 
             // checking for date parameter
-            if (binding.eventTimeEt.getText().toString().isEmpty()) {
+            if (Objects.requireNonNull(binding.eventTimeEt.getText()).toString().isEmpty()) {
                 Log.d(TAG, "Event time is incorrect");
                 Toast.makeText(this, "Time should not be empty.", Toast.LENGTH_SHORT).show();
                 return false;
